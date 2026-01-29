@@ -59,7 +59,11 @@ func (c *Client) Generate(ctx context.Context, prompt string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("call ollama: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			fmt.Printf("warning: close response body: %v\n", cerr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("ollama returned %s", resp.Status)

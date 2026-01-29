@@ -15,6 +15,7 @@ type ForecastDay struct {
 	Date         time.Time
 	WindSpeedMax float64
 	WindGustMax  float64
+	WindDirMean  float64 // in degrees, 0 = North
 }
 
 // Forecaster fetches a set of daily wind forecasts.
@@ -45,7 +46,7 @@ func (c *OpenMeteoClient) Fetch(ctx context.Context, days int) ([]ForecastDay, e
 	query := url.Values{}
 	query.Set("latitude", fmt.Sprintf("%f", c.Latitude))
 	query.Set("longitude", fmt.Sprintf("%f", c.Longitude))
-	query.Set("daily", "windspeed_10m_max,windgusts_10m_max")
+	query.Set("daily", "windspeed_10m_max,windgusts_10m_max,winddirection_10m_dominant")
 	query.Set("forecast_days", fmt.Sprintf("%d", days))
 	query.Set("timezone", "auto")
 
@@ -58,7 +59,11 @@ func (c *OpenMeteoClient) Fetch(ctx context.Context, days int) ([]ForecastDay, e
 	if err != nil {
 		return nil, fmt.Errorf("call open-meteo: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			fmt.Printf("warning: close response body: %v\n", cerr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("open-meteo returned %s", resp.Status)
@@ -84,13 +89,14 @@ type openMeteoDaily struct {
 	Time         []string  `json:"time"`
 	WindSpeedMax []float64 `json:"windspeed_10m_max"`
 	WindGustMax  []float64 `json:"windgusts_10m_max"`
+	WindDirMean  []float64 `json:"winddirection_10m_dominant"`
 }
 
 func (d *openMeteoDaily) toForecastDays() ([]ForecastDay, error) {
 	if len(d.Time) == 0 {
 		return nil, errors.New("no daily data returned")
 	}
-	if len(d.Time) != len(d.WindSpeedMax) || len(d.Time) != len(d.WindGustMax) {
+	if len(d.Time) != len(d.WindSpeedMax) || len(d.Time) != len(d.WindGustMax) || len(d.Time) != len(d.WindDirMean) {
 		return nil, errors.New("open-meteo arrays differ in length")
 	}
 
@@ -104,6 +110,7 @@ func (d *openMeteoDaily) toForecastDays() ([]ForecastDay, error) {
 			Date:         date,
 			WindSpeedMax: d.WindSpeedMax[idx],
 			WindGustMax:  d.WindGustMax[idx],
+			WindDirMean:  d.WindDirMean[idx],
 		})
 	}
 	return out, nil
