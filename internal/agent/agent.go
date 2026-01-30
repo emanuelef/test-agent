@@ -56,6 +56,9 @@ func (a *Agent) Run(ctx context.Context) error {
 	fmt.Println(report)
 
 	prompt := buildPrompt(location, forecast, report)
+	fmt.Println("\nPrompt sent to Ollama:\n----------------------")
+	fmt.Println(prompt)
+	fmt.Println("----------------------")
 	summary, err := a.cfg.Ollama.Generate(ctx, prompt)
 	if err != nil {
 		return fmt.Errorf("ollama summary: %w", err)
@@ -90,27 +93,28 @@ func buildForecastTable(days []weather.ForecastDay) string {
 }
 
 func buildPrompt(location string, days []weather.ForecastDay, table string) string {
-	var timeline strings.Builder
 	var windDirs []float64
+	var changes []string
+	var prevDir string
 	for _, day := range days {
-		timeline.WriteString(fmt.Sprintf("%s - max wind %.1f km/h, gusts %.1f km/h, dir %s\n",
-			day.Date.Format("Mon 02 Jan"), day.WindSpeedMax, day.WindGustMax, degToCompass(day.WindDirMean)))
+		dir := degToCompass(day.WindDirMean)
 		windDirs = append(windDirs, day.WindDirMean)
+		if prevDir != "" && dir != prevDir {
+			changes = append(changes, day.Date.Format("2006-01-02")+":"+dir)
+		}
+		prevDir = dir
 	}
 
-	predominant := predominantDirection(windDirs)
-
-	return fmt.Sprintf(`You are a weather risk assistant. Analyze the upcoming wind pattern for %s based on the forecast below.
-- Highlight the windiest periods and any noticeable gust spikes.
-- Recommend precautions an airport operations team should consider.
-- The predominant wind direction is %s.
+	return fmt.Sprintf(`Summarize the next 15 days wind forecast for %s in a compact way:
+- What is the main (predominant) wind direction?
+- On which dates does the wind direction change, and what is the new direction?
+- List all periods with easterly winds (E, ENE, ESE, or SE) and their dates.
+- Output should be concise, suitable for a quick daily aviation risk check.
 
 Tabular data:
 %s
 
-Chronological summary:
-%s
-`, location, predominant, table, timeline.String())
+`, location, table)
 }
 
 // degToCompass converts degrees to compass direction (e.g., N, NE, E, etc.)
@@ -118,25 +122,6 @@ func degToCompass(deg float64) string {
 	dirs := []string{"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"}
 	idx := int((deg/22.5)+0.5) % 16
 	return dirs[idx]
-}
-
-// predominantDirection returns the most common compass direction in the slice
-func predominantDirection(degs []float64) string {
-	if len(degs) == 0 {
-		return "unknown"
-	}
-	bins := make(map[string]int)
-	maxCount := 0
-	var predominant string
-	for _, d := range degs {
-		dir := degToCompass(d)
-		bins[dir]++
-		if bins[dir] > maxCount {
-			maxCount = bins[dir]
-			predominant = dir
-		}
-	}
-	return predominant
 }
 
 func fallbackLocation(name string) string {
