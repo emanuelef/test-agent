@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // Client talks to a local Ollama instance (https://ollama.com/).
@@ -52,7 +53,9 @@ func (c *Client) Generate(ctx context.Context, prompt string) (string, error) {
 
 	client := c.HTTPClient
 	if client == nil {
-		client = http.DefaultClient
+		client = &http.Client{
+			Timeout: 15 * time.Minute,
+		}
 	}
 
 	resp, err := client.Do(req)

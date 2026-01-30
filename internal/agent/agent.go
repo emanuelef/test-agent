@@ -99,9 +99,12 @@ func (a *Agent) Run(ctx context.Context) error {
 			fmt.Println(summary)
 			// Send to Telegram if configured
 			if a.cfg.TelegramToken != "" && a.cfg.TelegramChatID != "" {
-				err := sendTelegramMessage(&a.cfg, summary)
+				// Escape Markdown special characters to prevent parsing errors
+				escapedSummary := escapeMarkdown(summary)
+				err := sendTelegramMessage(&a.cfg, escapedSummary)
 				if err != nil {
 					fmt.Printf("Failed to send Telegram message: %v\n", err)
+					// Don't crash, just log and continue
 				}
 			}
 		}
@@ -162,6 +165,31 @@ func degToCompass(deg float64) string {
 	return dirs[idx]
 }
 
+// escapeMarkdown escapes special characters for Telegram Markdown
+func escapeMarkdown(text string) string {
+	replacer := strings.NewReplacer(
+		"_", "\\_",
+		"*", "\\*",
+		"[", "\\[",
+		"]", "\\]",
+		"(", "\\(",
+		")", "\\)",
+		"~", "\\~",
+		"`", "\\`",
+		">", "\\>",
+		"#", "\\#",
+		"+", "\\+",
+		"-", "\\-",
+		"=", "\\=",
+		"|", "\\|",
+		"{", "\\{",
+		"}", "\\}",
+		".", "\\.",
+		"!", "\\!",
+	)
+	return replacer.Replace(text)
+}
+
 func fallbackLocation(name string) string {
 	if strings.TrimSpace(name) == "" {
 		return "the target location"
@@ -182,7 +210,7 @@ func sendTelegramMessage(config *Config, message string) error {
 	msg := TelegramMessage{
 		ChatID:    config.TelegramChatID,
 		Text:      message,
-		ParseMode: "", // Send as plain text to avoid parsing errors
+		ParseMode: "Markdown",
 	}
 
 	jsonData, err := json.Marshal(msg)
