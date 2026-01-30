@@ -61,6 +61,16 @@ func (a *Agent) Run(ctx context.Context) error {
 	fmt.Println("----------------------")
 	summary, err := a.cfg.Ollama.Generate(ctx, prompt)
 	if err != nil {
+		fmt.Printf("Ollama failed: %v\n", err)
+		if a.cfg.TelegramToken != "" && a.cfg.TelegramChatID != "" {
+			err2 := sendTelegramMessage(&a.cfg, report)
+			if err2 != nil {
+				fmt.Printf("Failed to send Telegram message: %v\n", err2)
+				return fmt.Errorf("ollama summary: %w; telegram: %v", err, err2)
+			}
+			fmt.Println("Sent fallback wind table to Telegram.")
+			return nil
+		}
 		return fmt.Errorf("ollama summary: %w", err)
 	}
 

@@ -22,7 +22,7 @@ Configure via environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama API endpoint |
-| `OLLAMA_MODEL` | `llama3.1` | Ollama model to use |
+| `OLLAMA_MODEL` | `gemma2:9b` | Ollama model to use |
 | `FORECAST_DAYS` | `15` | Number of forecast days (max 16) |
 
 ## Environment Variables
@@ -58,6 +58,20 @@ To receive the Ollama summary via Telegram, set the following environment variab
 3. **Set these in your `.env` file:**
    - `TELEGRAM_TOKEN=...`
    - `TELEGRAM_CHAT_ID=...`
+
+### How to get your Telegram Chat ID
+
+1. Start a chat with your bot in Telegram and send any message (e.g., "Hi").
+2. Run:
+   ```
+   curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates"
+   ```
+3. In the JSON response, look for `"chat":{"id":...}`. For example:
+   ```json
+   {"ok":true,"result":[{"update_id":879971365,
+   "message":{"message_id":2,"from":{"id":8322824979,"is_bot":false,"first_name":"Emanuele","last_name":"Fumagalli","language_code":"it"},"chat":{"id":8322824979,"first_name":"Emanuele","last_name":"Fumagalli","type":"private"},"date":1769756335,"text":"Hi"}}]}
+   ```
+   The `id` field (e.g., `8322824979`) is your `TELEGRAM_CHAT_ID`.
 
 You can use a `.env` file for convenience. Example:
 
@@ -180,11 +194,23 @@ Access images at: `ghcr.io/emanuelefumagalli/test-agent:latest`
 
 ```
 15-day London Heathrow wind forecast (km/h):
-Date        | Wind Max | Gust Max
-------------+----------+---------
-2026-01-29 |     18.5 |    32.1
-2026-01-30 |     22.3 |    38.5
-...
+Date        | Wind Max | Gust Max | Dir
+------------+----------+---------+------
+2026-01-30 |     20.2 |    41.4 | SE
+2026-01-31 |     16.2 |    40.7 | S
+2026-02-01 |      9.1 |    18.0 | SSE
+2026-02-02 |     15.8 |    31.3 | E
+2026-02-03 |     17.7 |    38.5 | E
+2026-02-04 |     12.3 |    25.4 | SE
+2026-02-05 |     13.7 |    27.0 | ENE
+2026-02-06 |     14.3 |    32.0 | S
+2026-02-07 |     11.2 |    32.8 | SW
+2026-02-08 |     11.4 |    33.1 | SE
+2026-02-09 |     24.9 |    44.6 | E
+2026-02-10 |     25.0 |    42.5 | NE
+2026-02-11 |     17.4 |    30.6 | N
+2026-02-12 |     14.6 |    29.2 | WNW
+2026-02-13 |     17.1 |    41.8 | SSE
 
 Ollama summary:
 The wind forecast for London Heathrow shows moderate conditions for the next 15 days...
