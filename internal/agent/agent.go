@@ -342,14 +342,6 @@ func buildForecastTable(days []weather.ForecastDay) string {
 	return b.String()
 }
 
-func buildPrompt(location string, _ []weather.ForecastDay, table string, easterlyAnalysis string) string {
-	return fmt.Sprintf(`%s wind forecast. Easterly wind = planes overhead (✈️).
-
-%s
-%s
-Summarize briefly: how many easterly days and when does wind change direction?`, location, easterlyAnalysis, table)
-}
-
 // degToCompass converts degrees to E or W (what matters for flight paths)
 func degToCompass(deg float64) string {
 	deg = float64(int(deg+360) % 360)
@@ -392,13 +384,6 @@ func buildEasterlyAnalysis(days []weather.ForecastDay) string {
 	}
 
 	return fmt.Sprintf("Dominant: %s | East: %d days | West: %d days\n", dominant, eastCount, westCount)
-}
-
-func fallbackLocation(name string) string {
-	if strings.TrimSpace(name) == "" {
-		return "the target location"
-	}
-	return name
 }
 
 // TelegramMessage is the payload for Telegram API
