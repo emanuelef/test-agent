@@ -27,6 +27,7 @@ type Config struct {
 	RainDays     int
 	RainWeather  *weather.OpenMeteoClient
 	RainHour     int // London time
+	RainMinute   int
 
 	Ollama         *ollama.Client
 	TelegramToken  string
@@ -50,7 +51,10 @@ func New(cfg Config) *Agent {
 		cfg.WindHour = 10
 	}
 	if cfg.RainHour == 0 {
-		cfg.RainHour = 8
+		cfg.RainHour = 7
+	}
+	if cfg.RainMinute == 0 {
+		cfg.RainMinute = 30
 	}
 	return &Agent{cfg: cfg}
 }
@@ -136,9 +140,9 @@ func (a *Agent) runRainCheck(ctx context.Context) error {
 	a.doRainCheck(ctx)
 
 	for {
-		// Then sleep until next run (8am London)
+		// Then sleep until next run (7:30am London)
 		now := time.Now().In(london)
-		next := time.Date(now.Year(), now.Month(), now.Day(), a.cfg.RainHour, 0, 0, 0, london)
+		next := time.Date(now.Year(), now.Month(), now.Day(), a.cfg.RainHour, a.cfg.RainMinute, 0, 0, london)
 		if !now.Before(next) {
 			next = next.Add(24 * time.Hour)
 		}
